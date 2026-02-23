@@ -77,11 +77,17 @@ WindowController.prototype.windowControlsVisible = function(show) {
   }
 };
 
-/**
- * @param {string} theme
- */
 WindowController.prototype.setTheme = function(theme) {
   $('body').attr('theme', theme);
+  
+  const themeColorMeta = document.getElementById('theme-color-meta');
+  if (themeColorMeta) {
+    if (theme === 'dark') {
+      themeColorMeta.setAttribute('content', '#1f1f1f');
+    } else {
+      themeColorMeta.setAttribute('content', '#ffffff');
+    }
+  }
 };
 
 /**
@@ -92,29 +98,58 @@ WindowController.prototype.close = function() {
 };
 
 WindowController.prototype.focus_ = function() {
-  window.chrome.app.window.current().focus();
+  // In PWA mode, just focus the window
+  if (window.chrome && window.chrome.app && window.chrome.app.window) {
+    window.chrome.app.window.current().focus();
+  } else {
+    window.focus();
+  }
 };
 
 WindowController.prototype.minimize_ = function() {
-  window.chrome.app.window.current().minimize();
+  // In PWA mode, minimize is not available
+  if (window.chrome && window.chrome.app && window.chrome.app.window) {
+    window.chrome.app.window.current().minimize();
+  } else {
+    console.log('Minimize not available in PWA mode');
+  }
 };
 
 WindowController.prototype.maximize_ = function() {
-  var maximized = window.chrome.app.window.current().isMaximized();
+  // In PWA mode, use Fullscreen API
+  if (window.chrome && window.chrome.app && window.chrome.app.window) {
+    var maximized = window.chrome.app.window.current().isMaximized();
 
-  if (maximized) {
-    window.chrome.app.window.current().restore();
-    $('#window-maximize')
-        .attr('title', chrome.i18n.getMessage('maximizeButton'));
+    if (maximized) {
+      window.chrome.app.window.current().restore();
+      $('#window-maximize')
+          .attr('title', chrome.i18n.getMessage('maximizeButton'));
+    } else {
+      window.chrome.app.window.current().maximize();
+      $('#window-maximize')
+          .attr('title', chrome.i18n.getMessage('restoreButton'));
+    }
   } else {
-    window.chrome.app.window.current().maximize();
-    $('#window-maximize')
-        .attr('title', chrome.i18n.getMessage('restoreButton'));
+    // PWA mode - toggle fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+      $('#window-maximize')
+          .attr('title', chrome.i18n.getMessage('maximizeButton'));
+    } else {
+      document.documentElement.requestFullscreen();
+      $('#window-maximize')
+          .attr('title', chrome.i18n.getMessage('restoreButton'));
+    }
   }
 };
 
 WindowController.prototype.setAlwaysOnTop = function(isAlwaysOnTop) {
-  window.chrome.app.window.current().setAlwaysOnTop(isAlwaysOnTop);
+  // In PWA mode, always on top is not available
+  if (window.chrome && window.chrome.app && window.chrome.app.window) {
+    window.chrome.app.window.current().setAlwaysOnTop(isAlwaysOnTop);
+  } else {
+    console.log('Always on top not available in PWA mode');
+  }
 };
 
 /** Opens the sidebar if it is closed. */

@@ -464,6 +464,7 @@ body[theme="light"] .mdc-radio .mdc-radio__native-control:enabled:not(:checked)+
 header {
   align-items: center;
   -webkit-app-region: drag;
+  app-region: drag;
   background-color: var(--ta-background-color);
   border-bottom: 2px solid var(--ta-divider-color);
   display: flex;
@@ -471,6 +472,22 @@ header {
   padding-left: 10px;
   position: relative;
   -webkit-user-select: none;
+}
+
+#window-minimize,
+#window-maximize,
+#window-close {
+  display: none;
+}
+
+@media (display-mode: window-controls-overlay) {
+  header {
+    padding-right: 140px;
+  }
+  
+  #title-filename {
+    max-width: calc(100% - 300px);
+  }
 }
 
 .mdc-icon-button {

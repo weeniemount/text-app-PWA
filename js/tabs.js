@@ -71,10 +71,15 @@ Tab.prototype.getPath = function() {
 };
 
 Tab.prototype.updatePath_ = function() {
-  chrome.fileSystem.getDisplayPath(this.entry_, function(path) {
-    this.path_ = path;
+  if (this.entry_.name) {
+    this.path_ = this.entry_.name;
     $.event.trigger('tabpathchange', this);
-  }.bind(this));
+  } else if (chrome.fileSystem && chrome.fileSystem.getDisplayPath) {
+    chrome.fileSystem.getDisplayPath(this.entry_, function(path) {
+      this.path_ = path;
+      $.event.trigger('tabpathchange', this);
+    }.bind(this));
+  }
 };
 
 /** Get the contents of the file in the tab. */
@@ -85,16 +90,30 @@ Tab.prototype.getContent_ = function() {
   return this.session_.doc.toString().split('\n').join(this.lineEndings_);
 };
 
-Tab.prototype.save = function(opt_callbackDone) {
-  util.writeFile(
-    this.entry_, this.getContent_(),
-    function() {
+Tab.prototype.save = async function(opt_callbackDone) {
+  if (this.entry_.createWritable) {
+    try {
+      const writable = await this.entry_.createWritable();
+      await writable.write(this.getContent_());
+      await writable.close();
       this.saved_ = true;
       $.event.trigger('tabsave', this);
       if (opt_callbackDone)
         opt_callbackDone();
-    }.bind(this),
-    this.reportWriteError_.bind(this));
+    } catch (e) {
+      this.reportWriteError_(e);
+    }
+  } else {
+    util.writeFile(
+      this.entry_, this.getContent_(),
+      function() {
+        this.saved_ = true;
+        $.event.trigger('tabsave', this);
+        if (opt_callbackDone)
+          opt_callbackDone();
+      }.bind(this),
+      this.reportWriteError_.bind(this));
+  }
 };
 
 Tab.prototype.reportWriteError_ = function(e) {
@@ -139,11 +158,39 @@ function Tabs(editor, dialogController, settings) {
 /**
  * @type {Object} params
  * @type {function(FileEntry)} callback
- * Open a file in the system file picker. The FileEntry is copied to be stored
- * in background page, so it isn't destroyed when the window is closed.
  */
-Tabs.prototype.chooseEntry = function(params, callback) {
-  // TODO: Remove this when crbug.com/326523 is fixed.
+Tabs.prototype.chooseEntry = async function(params, callback) {
+  if (!chrome.fileSystem || !chrome.fileSystem.chooseEntry) {
+    try {
+      if (params.type === 'saveFile') {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: params.suggestedName || 'untitled.txt',
+          types: [{
+            description: 'Text Files',
+            accept: {
+              'text/*': ['.txt', '.md', '.js', '.json', '.html', '.css', '.xml']
+            }
+          }]
+        });
+        callback(handle);
+      } else {
+        const [handle] = await window.showOpenFilePicker({
+          multiple: false,
+          types: [{
+            description: 'Text Files',
+            accept: {
+              'text/*': ['.txt', '.md', '.js', '.json', '.html', '.css', '.xml']
+            }
+          }]
+        });
+        callback(handle);
+      }
+    } catch (err) {
+      console.log('User cancelled file picker');
+    }
+    return;
+  }
+
   if (params.acceptsMultiple) {
     console.error('acceptsMultiple is not supported when saving a file');
     return;
@@ -163,11 +210,29 @@ Tabs.prototype.chooseEntry = function(params, callback) {
  * @type {Object} params
  * @type {function(FileEntry)} callback
  * @type {function()} opt_oncancel
- * Open one or multiple files in the system file picker. File Entries are
- * copied to be stored in background page, so they aren't destroyed when the
- * window is closed. Callback is called once for each File Entry.
  */
-Tabs.prototype.chooseEntries = function(params, callback, opt_oncancel) {
+Tabs.prototype.chooseEntries = async function(params, callback, opt_oncancel) {
+  if (!chrome.fileSystem || !chrome.fileSystem.chooseEntry) {
+    try {
+      const handles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{
+          description: 'Text Files',
+          accept: {
+            'text/*': ['.txt', '.md', '.js', '.json', '.html', '.css', '.xml']
+          }
+        }]
+      });
+      for (const handle of handles) {
+        callback(handle);
+      }
+    } catch (err) {
+      console.log('User cancelled file picker');
+      if (opt_oncancel) opt_oncancel();
+    }
+    return;
+  }
+
   params.acceptsMultiple = true;
   chrome.fileSystem.chooseEntry(
       params,
@@ -197,9 +262,17 @@ Tabs.prototype.getCurrentTab = function() {
 };
 
 Tabs.prototype.newWindow = function() {
-  chrome.runtime.getBackgroundPage(function(bg) {
-    bg.background.newWindow();
-  }.bind(this));
+  if (chrome.runtime && chrome.runtime.getBackgroundPage) {
+    chrome.runtime.getBackgroundPage(function(bg) {
+      if (bg && bg.background && bg.background.newWindow) {
+        bg.background.newWindow();
+      } else {
+        window.open(window.location.href, '_blank');
+      }
+    }.bind(this));
+  } else {
+    window.open(window.location.href, '_blank');
+  }
 };
 
 /**
@@ -459,17 +532,35 @@ Tabs.prototype.getFilesToRetain = function() {
   return toRetain;
 };
 
-Tabs.prototype.openFileEntry = function(entry) {
-  chrome.fileSystem.getDisplayPath(entry, function(path) {
+Tabs.prototype.openFileEntry = async function(entry) {
+  if (entry.name && entry.getFile) {
+    const path = entry.name;
+    
     for (var i = 0; i < this.tabs_.length; i++) {
       if (this.tabs_[i].getPath() === path) {
         this.showTab(this.tabs_[i].getId());
         return;
       }
     }
+    
+    try {
+      const file = await entry.getFile();
+      this.readFileToNewTab_(entry, file);
+    } catch (err) {
+      console.error('Error reading file:', err);
+    }
+  } else if (chrome.fileSystem && chrome.fileSystem.getDisplayPath) {
+    chrome.fileSystem.getDisplayPath(entry, function(path) {
+      for (var i = 0; i < this.tabs_.length; i++) {
+        if (this.tabs_[i].getPath() === path) {
+          this.showTab(this.tabs_[i].getId());
+          return;
+        }
+      }
 
-    entry.file(this.readFileToNewTab_.bind(this, entry));
-  }.bind(this));
+      entry.file(this.readFileToNewTab_.bind(this, entry));
+    }.bind(this));
+  }
 };
 
 /**

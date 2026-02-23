@@ -78,9 +78,23 @@ TextApp.prototype.onSettingsReady_ = function() {
 
   this.windowController_.setAlwaysOnTop(this.settings_.get('alwaysontop'));
 
-  chrome.runtime.getBackgroundPage(function(bg) {
-    bg.background.onWindowReady(this);
-  }.bind(this));
+  if (chrome.runtime && chrome.runtime.getBackgroundPage) {
+    chrome.runtime.getBackgroundPage(function(bg) {
+      if (bg && bg.background && bg.background.onWindowReady) {
+        bg.background.onWindowReady(this);
+      } else {
+        this.onPWAReady_();
+      }
+    }.bind(this));
+  } else {
+    this.onPWAReady_();
+  }
+};
+
+TextApp.prototype.onPWAReady_ = function() {
+  if (!this.tabs_.hasOpenTab()) {
+    this.tabs_.newTab();
+  }
 };
 
 /**
@@ -160,6 +174,7 @@ TextApp.prototype.onSettingsChanged_ = function(e, key, value) {
 };
 
 const textApp = new TextApp();
+window.textApp = textApp;
 
 document.addEventListener('DOMContentLoaded', function() {
   textApp.init();
