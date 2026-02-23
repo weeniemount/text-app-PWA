@@ -1,20 +1,20 @@
-const CACHE_NAME = 'text-dev-v0.9.3';
+const CACHE_NAME = 'text-dev-v0.9.4';
 const urlsToCache = [
-  '/index.html',
-  '/css/app.css',
-  '/css/print.css',
-  '/js/app.js',
-  '/js/editor-cm.js',
-  '/js/i18n-template.js',
-  '/js/search.js',
-  '/js/settings.js',
-  '/js/tabs.js',
-  '/js/util.js',
-  '/third_party/jquery/jquery-1.8.3.min.js',
-  '/third_party/material-components-web/material-components-web.min.js',
-  '/third_party/material-components-web/material-components-web.min.css',
-  '/third_party/material-design-icons/iconfont/material-icons.css',
-  '/third_party/codemirror.next/codemirror.next.bin.js'
+  './index.html',
+  './css/app.css',
+  './css/print.css',
+  './js/app.js',
+  './js/editor-cm.js',
+  './js/i18n-template.js',
+  './js/search.js',
+  './js/settings.js',
+  './js/tabs.js',
+  './js/util.js',
+  './third_party/jquery/jquery-1.8.3.min.js',
+  './third_party/material-components-web/material-components-web.min.js',
+  './third_party/material-components-web/material-components-web.min.css',
+  './third_party/material-design-icons/iconfont/material-icons.css',
+  './third_party/codemirror.next/codemirror.next.bin.js'
 ];
 
 self.addEventListener('install', (event) => {
