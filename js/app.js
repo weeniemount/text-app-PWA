@@ -101,15 +101,21 @@ TextApp.prototype.onSettingsReady_ = function() {
 };
 
 TextApp.prototype.onPWAReady_ = function() {
-  if (window.pendingFiles && window.pendingFiles.length > 0) {
-    console.log('Processing pending files:', window.pendingFiles.length);
-    window.pendingFiles.forEach(fileHandle => {
-      this.tabs_.openFileEntry(fileHandle);
-    });
-    window.pendingFiles = [];
-  } else if (!this.tabs_.hasOpenTab()) {
-    this.tabs_.newTab();
-  }
+  console.log('PWA Ready, checking for pending files');
+  
+  setTimeout(() => {
+    if (window.pendingFiles && window.pendingFiles.length > 0) {
+      console.log('Processing', window.pendingFiles.length, 'pending files');
+      window.pendingFiles.forEach(fileHandle => {
+        console.log('Opening pending file:', fileHandle.name);
+        this.tabs_.openFileEntry(fileHandle);
+      });
+      window.pendingFiles = [];
+    } else if (!this.tabs_.hasOpenTab()) {
+      console.log('No pending files, creating new tab');
+      this.tabs_.newTab();
+    }
+  }, 200);
 };
 
 /**

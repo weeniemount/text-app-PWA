@@ -2,7 +2,7 @@
   "name": "Text",
   "short_name": "Text",
   "description": "A text editor for the web",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -113,10 +113,18 @@ class PWAAdapter {
             background: {
               onWindowReady: (textApp) => {
                 setTimeout(() => {
-                  if (textApp.tabs_ && !textApp.tabs_.hasOpenTab()) {
+                  if (window.pendingFiles && window.pendingFiles.length > 0) {
+                    console.log('Background: Processing', window.pendingFiles.length, 'pending files');
+                    window.pendingFiles.forEach(fileHandle => {
+                      console.log('Background: Opening file:', fileHandle.name);
+                      textApp.tabs_.openFileEntry(fileHandle);
+                    });
+                    window.pendingFiles = [];
+                  } else if (textApp.tabs_ && !textApp.tabs_.hasOpenTab()) {
+                    console.log('Background: Creating new tab');
                     textApp.tabs_.newTab();
                   }
-                }, 100);
+                }, 300);
               },
               newWindow: () => {
                 window.open(window.location.href, '_blank');
