@@ -20,14 +20,37 @@ class PWAAdapter {
 
   initFileHandling() {
     if ('launchQueue' in window) {
+      console.log('File Handling API available, setting up consumer');
       window.launchQueue.setConsumer(async (launchParams) => {
-        if (launchParams.files && launchParams.files.length) {
-          const fileHandles = await Promise.all(
-            launchParams.files.map(f => f.getFile())
-          );
-          this.openFiles(fileHandles);
+        console.log('Launch params received:', launchParams);
+        
+        if (!launchParams.files || launchParams.files.length === 0) {
+          console.log('No files in launch params');
+          return;
+        }
+
+        console.log('Processing', launchParams.files.length, 'file(s)');
+        
+        for (const fileHandle of launchParams.files) {
+          try {
+            console.log('Opening file:', fileHandle.name);
+            
+            if (window.textApp && window.textApp.tabs_) {
+              await window.textApp.tabs_.openFileEntry(fileHandle);
+            } else {
+              console.log('textApp not ready, queuing file');
+              if (!window.pendingFiles) {
+                window.pendingFiles = [];
+              }
+              window.pendingFiles.push(fileHandle);
+            }
+          } catch (error) {
+            console.error('Error opening file:', error);
+          }
         }
       });
+    } else {
+      console.log('File Handling API not available');
     }
   }
 

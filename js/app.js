@@ -43,6 +43,15 @@ TextApp.prototype.openTabs = function(entries) {
   for (var i = 0; i < entries.length; i++) {
     this.tabs_.openFileEntry(entries[i]);
   }
+  
+  if (window.pendingFiles && window.pendingFiles.length > 0) {
+    console.log('Processing pending files from openTabs:', window.pendingFiles.length);
+    window.pendingFiles.forEach(fileHandle => {
+      this.tabs_.openFileEntry(fileHandle);
+    });
+    window.pendingFiles = [];
+  }
+  
   this.windowController_.focus_();
   if (!this.tabs_.hasOpenTab()) {
     this.tabs_.newTab();
@@ -92,7 +101,13 @@ TextApp.prototype.onSettingsReady_ = function() {
 };
 
 TextApp.prototype.onPWAReady_ = function() {
-  if (!this.tabs_.hasOpenTab()) {
+  if (window.pendingFiles && window.pendingFiles.length > 0) {
+    console.log('Processing pending files:', window.pendingFiles.length);
+    window.pendingFiles.forEach(fileHandle => {
+      this.tabs_.openFileEntry(fileHandle);
+    });
+    window.pendingFiles = [];
+  } else if (!this.tabs_.hasOpenTab()) {
     this.tabs_.newTab();
   }
 };
