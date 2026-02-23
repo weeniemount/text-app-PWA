@@ -1,6 +1,6 @@
 # Text PWA App
 
-Just a text editor for Chrome OS and Chrome and the Web. originally from [text-app](https://github.com/GoogleChromeLabs/text-app) made by GoogleChromeLabs
+Just a text editor for Chrome OS and Chrome and the Web. hard fork of [text-app](https://github.com/GoogleChromeLabs/text-app) made by GoogleChromeLabs
 
 # how to run
 
